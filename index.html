@@ -85,14 +85,15 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 bg-slate-900/40 px-3 py-2 rounded-xl border border-slate-800/80 shadow-inner">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <!-- NEW: TOMBOL PENGATURAN API KEY -->
+            <button id="api-settings-btn" class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-700 shadow-sm transition-colors cursor-pointer group">
+                <span id="api-status-dot" class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                 </span>
-                <span class="text-[10px] font-semibold text-slate-300">Powered by Gemini 3.1</span>
-            </div>
-            <span class="text-[9px] bg-purple-500/20 text-purple-300 px-2.5 py-1.5 rounded-lg border border-purple-500/30 font-bold">Dual Image • Multimodal Ready</span>
+                <span id="api-status-text" class="text-[10px] font-bold text-slate-300 group-hover:text-white">API Key Belum Diatur</span>
+            </button>
+            <span class="hidden md:inline-block text-[9px] bg-purple-500/20 text-purple-300 px-2.5 py-1.5 rounded-lg border border-purple-500/30 font-bold">Powered by Google</span>
         </div>
     </header>
 
@@ -836,6 +837,39 @@
         </div>
     </div>
 
+<!-- API KEY MODAL -->
+    <div id="apikey-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 transition-all">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl text-left relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-amber-500"></div>
+            
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-black text-white flex items-center gap-2">
+                    <span class="text-2xl">🔑</span> Setup Google Gemini API
+                </h3>
+                <button id="close-apikey-modal" class="text-slate-500 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <p class="text-[11px] text-slate-400 mb-5 leading-relaxed">
+                Aplikasi ini berjalan 100% di browser Anda. Masukkan API Key Gemini Anda secara gratis untuk mulai membuat Storyboard. <br>
+                <strong class="text-emerald-400">Aman:</strong> Key Anda hanya disimpan di browser Anda sendiri (Local Storage) dan tidak pernah dikirim ke server kami.
+            </p>
+            
+            <div class="space-y-2 mb-6">
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-300">GEMINI API KEY</label>
+                <input type="password" id="apikey-input-field" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono transition-colors placeholder-slate-600" placeholder="AIzaSy...">
+                <div class="flex justify-between items-center px-1 pt-1">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-amber-500 hover:text-amber-400 font-bold underline underline-offset-2">Dapatkan API Key Gratis Disini ↗</a>
+                    <button id="remove-apikey-btn" class="text-[9px] text-rose-500 hover:text-rose-400 font-bold hidden">Hapus Key</button>
+                </div>
+            </div>
+            
+            <button id="save-apikey-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3 rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95 transform">
+                Simpan & Mulai 🚀
+            </button>
+        </div>
+    </div>
     <!-- Error Modal -->
     <div id="error-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 z-[100]">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl text-left">
@@ -850,11 +884,74 @@
         </div>
     </div>
 <!-- Script Utama -->
+<!-- Script Utama -->
     <script nonce="storyboard-generator-v5">
-        // Safe declaration to prevent SyntaxError if already declared in global context by the environment
-        window.apiKey = window.apiKey || "";
+        
+        // ==========================================
+        // SISTEM KEAMANAN & MANAJEMEN API KEY (LOCAL STORAGE)
+        // ==========================================
+        window.apiKey = localStorage.getItem('akariu_gemini_api_key') || "";
 
+        const apiKeyModal = document.getElementById('apikey-modal');
+        const apiKeyInput = document.getElementById('apikey-input-field');
+        const saveApiKeyBtn = document.getElementById('save-apikey-btn');
+        const removeApiKeyBtn = document.getElementById('remove-apikey-btn');
+        const apiSettingsBtn = document.getElementById('api-settings-btn');
+        const closeApiModalBtn = document.getElementById('close-apikey-modal');
+        
+        const apiStatusDot = document.getElementById('api-status-dot');
+        const apiStatusText = document.getElementById('api-status-text');
+
+        function updateApiKeyUI() {
+            if (window.apiKey && window.apiKey.length > 20) {
+                // Key Ada
+                apiStatusDot.innerHTML = '<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>';
+                apiStatusText.textContent = "API Key Terhubung";
+                apiStatusText.className = "text-[10px] font-bold text-emerald-400 group-hover:text-emerald-300";
+                apiKeyModal.classList.add('hidden');
+                removeApiKeyBtn.classList.remove('hidden');
+                apiKeyInput.value = window.apiKey;
+            } else {
+                // Key Kosong
+                apiStatusDot.innerHTML = '<span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>';
+                apiStatusText.textContent = "Setup API Key";
+                apiStatusText.className = "text-[10px] font-bold text-rose-400 group-hover:text-rose-300";
+                apiKeyModal.classList.remove('hidden');
+                removeApiKeyBtn.classList.add('hidden');
+                apiKeyInput.value = "";
+            }
+        }
+
+        // Event Listeners untuk Modal API
+        apiSettingsBtn.addEventListener('click', () => apiKeyModal.classList.remove('hidden'));
+        closeApiModalBtn.addEventListener('click', () => apiKeyModal.classList.add('hidden'));
+        
+        saveApiKeyBtn.addEventListener('click', () => {
+            const val = apiKeyInput.value.trim();
+            if (val.length < 20) {
+                alert("Mohon masukkan API Key Gemini yang valid.");
+                return;
+            }
+            window.apiKey = val;
+            localStorage.setItem('akariu_gemini_api_key', val);
+            updateApiKeyUI();
+        });
+
+        removeApiKeyBtn.addEventListener('click', () => {
+            if(confirm("Yakin ingin menghapus API Key dari browser ini?")) {
+                window.apiKey = "";
+                localStorage.removeItem('akariu_gemini_api_key');
+                updateApiKeyUI();
+            }
+        });
+
+        // Jalankan saat web dimuat
+        document.addEventListener("DOMContentLoaded", updateApiKeyUI);
+
+
+        // ==========================================
         // State Manager (SSOT - Single Source of Truth)
+        // ==========================================
         const state = {
             projectType: "COMMERCIAL", // COMMERCIAL atau FILM
             productPhotos: [], 
@@ -2065,6 +2162,11 @@
         const scenesInput = document.getElementById('scenes-input');
         
         generateBtn.addEventListener('click', async () => {
+            // NEW: PROTEKSI API KEY
+            if (!window.apiKey) {
+                document.getElementById('apikey-modal').classList.remove('hidden');
+                return;
+            }
             // 1. KUNCI TOMBOL DAN MUNCULKAN ANIMASI LOADING
             const originalBtnContent = generateBtn.innerHTML; // Simpan tampilan asli tombol
             generateBtn.disabled = true;
